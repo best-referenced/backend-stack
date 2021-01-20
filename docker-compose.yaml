@@ -1,0 +1,161 @@
+version: "3.8"
+
+services:
+
+  mongodb-primary:
+    image: "bitnami/mongodb:latest"
+    container_name: mongodb-primary
+    environment:
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb-primary
+      - MONGODB_REPLICA_SET_MODE=primary
+      - MONGODB_ROOT_PASSWORD=chEPugbNWesZ
+      - MONGODB_REPLICA_SET_KEY=replicasetkey123
+    volumes:
+      - type: volume
+        source: mongodb_master_data
+        target: /bitnami
+    ports:
+      - "27017:27017"
+    networks:
+      - api
+
+  mongodb-secondary:
+    image: "bitnami/mongodb:latest"
+    container_name: mongodb-secondary
+    environment:
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb-secondary
+      - MONGODB_REPLICA_SET_MODE=secondary
+      - MONGODB_INITIAL_PRIMARY_HOST=mongodb-primary
+      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
+      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=chEPugbNWesZ
+      - MONGODB_REPLICA_SET_KEY=replicasetkey123
+    volumes:
+      - type: volume
+        source: mongodb_secondary_data
+        target: /bitnami
+    networks:
+      - api
+
+  mongodb-arbiter:
+    image: "bitnami/mongodb:latest"
+    container_name: mongodb-arbiter
+    environment:
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb-arbiter
+      - MONGODB_REPLICA_SET_MODE=arbiter
+      - MONGODB_INITIAL_PRIMARY_HOST=mongodb-primary
+      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=chEPugbNWesZ
+      - MONGODB_REPLICA_SET_KEY=replicasetkey123
+    volumes:
+      - type: volume
+        source: mongodb_arbiter_data
+        target: /bitnami
+    networks:
+      - api
+
+  es01:
+    image: "docker.elastic.co/elasticsearch/elasticsearch-oss:7.10.2"
+    container_name: es01
+    environment:
+      node.name: es01
+      discovery.seed_hosts: es02
+      cluster.initial_master_nodes: es01,es02
+      cluster.name: es-cluster
+      bootstrap.memory_lock: "true"
+      ES_JAVA_OPTS: -Xms256m -Xmx256m
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - "es-data-es01:/usr/share/elasticsearch/data"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - api
+
+  es02:
+    image: "docker.elastic.co/elasticsearch/elasticsearch-oss:7.10.2"
+    container_name: es02
+    environment:
+      node.name: es02
+      discovery.seed_hosts: es01
+      cluster.initial_master_nodes: es01,es02
+      cluster.name: es-cluster
+      bootstrap.memory_lock: "true"
+      ES_JAVA_OPTS: -Xms256m -Xmx256m
+    volumes:
+      - "es-data-es02:/usr/share/elasticsearch/data"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - api
+
+  monstache01:
+    image: rwynn/monstache
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 5
+    container_name: monstache01
+    working_dir: /app
+    environment:
+      MONSTACHE_MONGO_URL: mongodb://root:chEPugbNWesZ@mongodb-primary:27017,mongodb-secondary:27017,mongodb-arbiter:27017/?readPreference=primary&replicaSet=replicaset
+      MONSTACHE_ES_URLS: http://es01:9200,http://es02:9200
+      MONSTACHE_CLUSTER: HA
+    networks:
+      - api
+
+  monstache02:
+    image: rwynn/monstache
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 5
+    container_name: monstache02
+    working_dir: /app
+    environment:
+      MONSTACHE_MONGO_URL: mongodb://root:chEPugbNWesZ@mongodb-primary:27017,mongodb-secondary:27017,mongodb-arbiter:27017/?readPreference=primary&replicaSet=replicaset
+      MONSTACHE_ES_URLS: http://es01:9200,http://es02:9200,
+      MONSTACHE_CLUSTER: HA
+    networks:
+      - api
+
+volumes:
+  es-data-es01:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./data/es01
+  es-data-es02:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./data/es02
+  mongodb_master_data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./data/mongodb1
+      
+  mongodb_secondary_data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./data/mongodb2
+
+  mongodb_arbiter_data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./data/mongodb3
+
+networks:
+  api:
