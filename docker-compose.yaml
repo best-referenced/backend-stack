@@ -107,16 +107,16 @@ services:
     networks:
       - api
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana-oss:7.10.2
-    container_name: kibana
-    ports:
-      - "5601:5601"
-    environment:
-      #ELASTICSEARCH_URL: "[http://es01:9200,http://es02:9200]"
-      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
-    networks:
-      - api
+  # kibana:
+  #   image: docker.elastic.co/kibana/kibana-oss:7.10.2
+  #   container_name: kibana
+  #   ports:
+  #     - "5601:5601"
+  #   environment:
+  #     #ELASTICSEARCH_URL: "[http://es01:9200,http://es02:9200]"
+  #     ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+  #   networks:
+  #     - api
 
   monstache:
     image: rwynn/monstache
