@@ -118,6 +118,18 @@ services:
   #   networks:
   #     - api
 
+  kibana:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: kibana
+    ports:
+      - "5601:80"
+    # environment:
+    #   ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    networks:
+      - api
+
   monstache:
     image: rwynn/monstache
     deploy:
